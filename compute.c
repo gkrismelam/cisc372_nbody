@@ -6,10 +6,11 @@
 #include "vector.h"
 #include "config.h"
 
-static vector3 *d_hPos = NULL;
-static vector3 *d_hVel = NULL;
-static double  *d_mass = NULL;
-static vector3 *d_accels = NULL;
+// Removed 'static' keyword to match extern declarations in vector.h
+vector3 *d_hPos = NULL;
+vector3 *d_hVel = NULL;
+double  *d_mass = NULL;
+vector3 *d_accels = NULL;
 
 static int initialized = 0;
 
@@ -41,29 +42,29 @@ __global__ void computePairwiseAccelerations(
     int idx = i * NUMENTITIES + j;
 
     if (i == j) {
-        accels[idx][0] = 0.0;
-        accels[idx][1] = 0.0;
-        accels[idx][2] = 0.0;
+        accels[idx].x = 0.0;
+        accels[idx].y = 0.0;
+        accels[idx].z = 0.0;
         return;
     }
 
-    double dx = pos[i][0] - pos[j][0];
-    double dy = pos[i][1] - pos[j][1];
-    double dz = pos[i][2] - pos[j][2];
+    double dx = pos[i].x - pos[j].x;
+    double dy = pos[i].y - pos[j].y;
+    double dz = pos[i].z - pos[j].z;
 
     double r2 = dx*dx + dy*dy + dz*dz;
 
     if (r2 == 0.0) {
-        accels[idx][0] = accels[idx][1] = accels[idx][2] = 0.0;
+        accels[idx].x = accels[idx].y = accels[idx].z = 0.0;
         return;
     }
 
     double r = sqrt(r2);
     double accelmag = -GRAV_CONSTANT * massValues[j] / r2;
 
-    accels[idx][0] = accelmag * dx / r;
-    accels[idx][1] = accelmag * dy / r;
-    accels[idx][2] = accelmag * dz / r;
+    accels[idx].x = accelmag * dx / r;
+    accels[idx].y = accelmag * dy / r;
+    accels[idx].z = accelmag * dz / r;
 }
 
 __global__ void updateVelocitiesAndPositions(
@@ -77,18 +78,18 @@ __global__ void updateVelocitiesAndPositions(
 
     for (int j = 0; j < NUMENTITIES; j++) {
         int idx = i * NUMENTITIES + j;
-        ax += accels[idx][0];
-        ay += accels[idx][1];
-        az += accels[idx][2];
+        ax += accels[idx].x;
+        ay += accels[idx].y;
+        az += accels[idx].z;
     }
 
-    vel[i][0] += ax * INTERVAL;
-    vel[i][1] += ay * INTERVAL;
-    vel[i][2] += az * INTERVAL;
+    vel[i].x += ax * INTERVAL;
+    vel[i].y += ay * INTERVAL;
+    vel[i].z += az * INTERVAL;
 
-    pos[i][0] += vel[i][0] * INTERVAL;
-    pos[i][1] += vel[i][1] * INTERVAL;
-    pos[i][2] += vel[i][2] * INTERVAL;
+    pos[i].x += vel[i].x * INTERVAL;
+    pos[i].y += vel[i].y * INTERVAL;
+    pos[i].z += vel[i].z * INTERVAL;
 }
 
 static void initDeviceMemory(void)
@@ -97,6 +98,7 @@ static void initDeviceMemory(void)
     size_t massBytes = sizeof(double) * NUMENTITIES;
     size_t accelBytes = sizeof(vector3) * NUMENTITIES * NUMENTITIES;
 
+    // Note: hPos, hVel, and mass need to be defined in main.c or another file
     checkCuda(cudaMalloc(&d_hPos, vecBytes), "malloc pos");
     checkCuda(cudaMalloc(&d_hVel, vecBytes), "malloc vel");
     checkCuda(cudaMalloc(&d_mass, massBytes), "malloc mass");
@@ -110,7 +112,7 @@ static void initDeviceMemory(void)
     initialized = 1;
 }
 
-void compute()
+void compute(void)
 {
     if (!initialized) {
         initDeviceMemory();
