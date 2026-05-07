@@ -1,7 +1,7 @@
 FLAGS = -DDEBUG
 LIBS = -lm -lcudart
 NVCC = nvcc
-ALWAYS_REBUILD = Makefile
+ALWAYS_REBUILD=makefile
 
 nbody: nbody.o compute.o
 	$(NVCC) $(FLAGS) $^ -o $@ $(LIBS)
